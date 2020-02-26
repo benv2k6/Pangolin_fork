@@ -23,12 +23,20 @@ option( BUILD_EXAMPLES "Build Tools" ON )
 
 set (CMAKE_CXX_STANDARD 14)
 
+set(DEPENDECIES_DIR "C:/data/dependencies" CACHE PATH "dependencies root directory")
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${DEPENDECIES_DIR}/Eigen/Eigen3/cmake/")
+set(CMAKE_SYSTEM_PREFIX_PATH
+	${CMAKE_SYSTEM_PREFIX_PATH}
+	${DEPENDECIES_DIR}/Eigen/
+)
+find_package(Eigen3 REQUIRED)
+
 if(_WIN_)
     option( BUILD_SHARED_LIBS    "Build Shared Library" OFF)
     option( BUILD_EXTERN_GLEW    "Automatically download, build and compile GLEW" ON)
-    option( BUILD_EXTERN_LIBPNG  "Automatically download, build and compile libpng" ON)
-    option( BUILD_EXTERN_LIBJPEG "Automatically download, build and compile libjpeg" ON)
-    option( MSVC_USE_STATIC_CRT  "Use static C Runtime with MSVC, /MT instead of /MD" ON)
+    option( BUILD_EXTERN_LIBPNG  "Automatically download, build and compile libpng" OFF)
+    option( BUILD_EXTERN_LIBJPEG "Automatically download, build and compile libjpeg" OFF)
+    option( MSVC_USE_STATIC_CRT  "Use static C Runtime with MSVC, /MT instead of /MD" OFF)
 
     # Make sure there are no erroneous C Runtime flags
     list(APPEND FLAG_VARS
