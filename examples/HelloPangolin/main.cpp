@@ -1,7 +1,12 @@
+#include <imgui.h>
 #include <pangolin/pangolin.h>
 #include <Eigen/Geometry>
 #include <Eigen/SVD>
 #include <chrono>
+
+#include <imgui_impl_opengl3.h>
+#include <imgui_impl_win32.h>
+
 // Converts degrees to radians.
 #define degreesToRadians(angleDegrees) (angleDegrees * M_PI / 180.0)
 
@@ -157,6 +162,7 @@ static void DrawAxisGizmo(const Eigen::Matrix4d& mvmat,
     glLineWidth(line_width);
     pangolin::glDrawAxis(axis_len);
     glPopAttrib();
+    glPopMatrix();
 }
 
 Eigen::Matrix4f lookAt(const Eigen::Vector3f& eye,
@@ -181,24 +187,78 @@ Eigen::Matrix4f lookAt(const Eigen::Vector3f& eye,
 }  // namespace gl
 
 int main(int /*argc*/, char** /*argv*/) {
-    pangolin::CreateWindowAndBind("Main", 640, 480);
+    const auto width = 640;
+    const auto height = 480;
+
+    auto& window = pangolin::CreateWindowAndBind("Main", width, height);
+
+    // 3D Mouse handler requires depth testing to be enabled
     glEnable(GL_DEPTH_TEST);
 
+    // Issue specific OpenGl we might need
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+    IMGUI_CHECKVERSION();
+    ImGui::CreateContext();
+    ImGuiIO& io = ImGui::GetIO();
+    //io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
+    (void)io;
+
+    ImGui_ImplWin32_Init(window.GetHandle());
+
+    const char* glsl_version = "#version 130";
+    ImGui_ImplOpenGL3_Init(glsl_version);
+
+    // Setup Dear ImGui style
+    ImGui::StyleColorsClassic();
     // Define Projection and initial ModelView matrix
     pangolin::OpenGlRenderState s_cam(
-        pangolin::ProjectionMatrix(640, 480, 420, 420, 320, 240, 0.2, 100),
+        pangolin::ProjectionMatrix(width, height, 420, 420, 320, 240, 0.2, 100),
         pangolin::ModelViewLookAt(-12, 2, -12, 0, 0, 0, pangolin::AxisY));
+    const int UI_WIDTH = 180;
 
-    const int UI_WIDTH = 0;
+    // Add named OpenGL viewport to window and provide 3D Handler
     pangolin::View& d_cam =
         pangolin::CreateDisplay()
             .SetBounds(0.0, 1.0, pangolin::Attach::Pix(UI_WIDTH), 1.0,
                        -640.0f / 480.0f)
             .SetHandler(new RgoHandler3d(s_cam));
+
     while (!pangolin::ShouldQuit()) {
         // Clear screen and activate view to render into
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         gl::DrawAxisGizmo(s_cam.GetModelViewMatrix());
+        glEnable(GL_DEPTH_TEST);
+
+        ImGui_ImplOpenGL3_NewFrame();
+        ImGui_ImplWin32_NewFrame();
+        {
+            ImGui::NewFrame();
+            static float f = 0.0f;
+            static int counter = 0;
+
+            ImGui::Begin("UI");
+            ImGui::SetWindowPos({0, 0});
+            auto win_size = ImGui::GetWindowSize();
+            win_size.x = pangolin::Attach::Pix(UI_WIDTH).p;
+            ImGui::SetWindowSize(win_size);
+
+            ImGui::SliderFloat(
+                "float", &f, 0.0f,
+                1.0f);  // Edit 1 float using a slider from 0.0f to 1.0f
+            if (ImGui::Button(
+                    "Button"))  // Buttons return true when clicked (most
+                                // widgets return true when edited/activated)
+                counter++;
+            ImGui::SameLine();
+            ImGui::Text("counter = %d", counter);
+            ImGui::Text("Application average %.3f ms/frame (%.1f FPS)",
+                        1000.0f / ImGui::GetIO().Framerate,
+                        ImGui::GetIO().Framerate);
+            ImGui::End();
+            ImGui::EndFrame();
+        }
 
         d_cam.Activate(s_cam);
 
@@ -208,10 +268,13 @@ int main(int /*argc*/, char** /*argv*/) {
         pangolin::glDraw_y0(10.0, 10);
 
         // Swap frames and Process Events
+        ImGui::Render();
+        ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
         pangolin::FinishFrame();
         using namespace std::chrono_literals;
         std::this_thread::sleep_for(16ms);
     }
-
+    ImGui_ImplOpenGL3_Shutdown();
+    ImGui::DestroyContext();
     return 0;
 }

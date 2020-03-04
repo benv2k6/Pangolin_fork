@@ -286,6 +286,16 @@ if(UNIX)
   endif()
 endif()
 
+option(BUILD_DEAR_IMGUI "Dear ImGui support to pangolin" ON)
+if(BUILD_DEAR_IMGUI)
+  if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/../external/dearImGui/CMakeLists.txt")
+      add_subdirectory("../external/dearImGui" "${CMAKE_CURRENT_BINARY_DIR}/external/dearImGui")
+      set( dearImGui_FOUND true)
+      list(APPEND LINK_LIBS PUBLIC imgui)
+      message(STATUS "DearImGui Found and Enabled")
+  endif()
+endif()
+
 option(BUILD_PANGOLIN_PYTHON "Build support for Pangolin Interactive Console" ON)
 if(BUILD_PANGOLIN_PYTHON AND BUILD_PANGOLIN_GUI AND BUILD_PANGOLIN_VARS AND NOT _WIN_)
   if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/../external/pybind11/CMakeLists.txt")
@@ -772,3 +782,4 @@ install(
 install(
     EXPORT ${PROJECT_NAME}Targets DESTINATION ${CMAKECONFIG_INSTALL_DIR}
 )
+install( EXPORT dearImGuiInstall DESTINATION ${CMAKECONFIG_INSTALL_DIR})

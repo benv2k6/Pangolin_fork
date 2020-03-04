@@ -50,6 +50,8 @@ public:
 
     virtual void Resize(unsigned int w, unsigned int h) = 0;
 
+    virtual void* GetHandle(){return nullptr;};
+
     /**
      * @brief MakeCurrent set the current context
      * to be called in a thread before accessing OpenGL

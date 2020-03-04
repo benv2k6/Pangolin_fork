@@ -30,11 +30,16 @@
 #include <pangolin/gl/glinclude.h>
 #include <pangolin/display/display.h>
 #include <pangolin/display/display_internal.h>
-
 #include <pangolin/display/device/WinWindow.h>
+
+#include <imgui.h>
+#include <imgui_impl_win32.h>
+
 #include <memory>
 
 #define CheckWGLDieOnError() pangolin::_CheckWLDieOnError( __FILE__, __LINE__ );
+// Forward declare message handler from imgui_impl_win32.cpp
+extern LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 namespace pangolin {
 inline void _CheckWLDieOnError( const char *sFile, const int nLine )
 {
@@ -57,7 +62,7 @@ namespace pangolin
 const char *className = "Pangolin";
 
 extern __thread PangolinGl* context;
-  
+
 ////////////////////////////////////////////////////////////////////////
 // Utils
 ////////////////////////////////////////////////////////////////////////
@@ -290,7 +295,12 @@ WinWindow::WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
     } else {
         self = reinterpret_cast<WinWindow*>(GetWindowLongPtrA(hwnd, GWLP_USERDATA));
     }
-
+    auto ret = ImGui_ImplWin32_WndProcHandler(hwnd, uMsg, wParam, lParam);
+    // auto current_context = ImGui::GetCurrentContext();
+    // if ( ImGui::GetCurrentContext() &&
+    //         ImGui::GetIO().WantCaptureMouse || ImGui::GetIO().WantCaptureMouse ) {
+    //     return ret;
+    // }
     if (self) {
         return self->HandleWinMessages(uMsg, wParam, lParam);
     } else {
@@ -583,14 +593,13 @@ PANGOLIN_REGISTER_FACTORY(WinWindow)
 {
   struct WinWindowFactory : public FactoryInterface<WindowInterface> {
     std::unique_ptr<WindowInterface> Open(const Uri& uri) override {
-          
       const std::string window_title = uri.Get<std::string>("window_title", "window");
       const int w = uri.Get<int>("w", 640);
       const int h = uri.Get<int>("h", 480);
       return std::unique_ptr<WindowInterface>(CreateWinWindowAndBind(window_title, w, h));
     }
   };
-  
+
   auto factory = std::make_shared<WinWindowFactory>();
   FactoryRegistry<WindowInterface>::I().RegisterFactory(factory, 10, "winapi");
   FactoryRegistry<WindowInterface>::I().RegisterFactory(factory, 100,  "default");
