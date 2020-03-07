@@ -31,15 +31,16 @@
 #include <pangolin/display/display.h>
 #include <pangolin/display/display_internal.h>
 #include <pangolin/display/device/WinWindow.h>
-
-#include <imgui.h>
-#include <imgui_impl_win32.h>
+#ifdef WITH_DEARIMGUI
+    #include <imgui.h>
+    #include <imgui_impl_win32.h>
+    extern LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
+#endif
 
 #include <memory>
 
 #define CheckWGLDieOnError() pangolin::_CheckWLDieOnError( __FILE__, __LINE__ );
 // Forward declare message handler from imgui_impl_win32.cpp
-extern LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 namespace pangolin {
 inline void _CheckWLDieOnError( const char *sFile, const int nLine )
 {
@@ -225,8 +226,12 @@ WinWindow::WinWindow(
         std::cerr << "GetModuleHandle() failed" << std::endl;
         CheckWGLDieOnError();
     }
+#ifdef WITH_DEARIMGUI
+    IMGUI_CHECKVERSION();
+    ImGui::CreateContext();
+    ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
     RegisterThisClass(hCurrentInst);
-
+#endif
     HWND thishwnd = CreateWindowA(
         className, window_title.c_str(),
         WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN | WS_CLIPSIBLINGS,
@@ -240,7 +245,9 @@ WinWindow::WinWindow(
     if( thishwnd != hWnd ) {
         throw std::runtime_error("Pangolin Window Creation Failed.");
     }
-
+#ifdef WITH_DEARIMGUI
+    ImGui_ImplWin32_Init(hWnd);
+#endif
     // Gets the size of the window, excluding the top bar
     RECT cRect;
     GetClientRect(thishwnd, &cRect);
@@ -259,6 +266,9 @@ WinWindow::~WinWindow()
         std::cerr << "DestroyWindow() failed" << std::endl;
         CheckWGLDieOnError();
     }
+#ifdef WITH_DEARIMGUI
+    ImGui::DestroyContext();
+#endif
 }
 
 void WinWindow::RegisterThisClass(HMODULE hCurrentInst)
@@ -295,13 +305,13 @@ WinWindow::WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
     } else {
         self = reinterpret_cast<WinWindow*>(GetWindowLongPtrA(hwnd, GWLP_USERDATA));
     }
-    auto ret = ImGui_ImplWin32_WndProcHandler(hwnd, uMsg, wParam, lParam);
-    // auto current_context = ImGui::GetCurrentContext();
-    // if ( ImGui::GetCurrentContext() &&
-    //         ImGui::GetIO().WantCaptureMouse || ImGui::GetIO().WantCaptureMouse ) {
-    //     return ret;
-    // }
     if (self) {
+    #ifdef WITH_DEARIMGUI
+        auto ret = ImGui_ImplWin32_WndProcHandler(hwnd, uMsg, wParam, lParam);
+        if (ImGui::GetIO().WantCaptureMouse || ImGui::GetIO().WantCaptureMouse ) {
+            return !ret;
+        }
+    #endif
         return self->HandleWinMessages(uMsg, wParam, lParam);
     } else {
         return DefWindowProcA(hwnd, uMsg, wParam, lParam);

@@ -199,14 +199,6 @@ int main(int /*argc*/, char** /*argv*/) {
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-    IMGUI_CHECKVERSION();
-    ImGui::CreateContext();
-    ImGuiIO& io = ImGui::GetIO();
-    //io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
-    (void)io;
-
-    ImGui_ImplWin32_Init(window.GetHandle());
-
     const char* glsl_version = "#version 130";
     ImGui_ImplOpenGL3_Init(glsl_version);
 
@@ -216,12 +208,11 @@ int main(int /*argc*/, char** /*argv*/) {
     pangolin::OpenGlRenderState s_cam(
         pangolin::ProjectionMatrix(width, height, 420, 420, 320, 240, 0.2, 100),
         pangolin::ModelViewLookAt(-12, 2, -12, 0, 0, 0, pangolin::AxisY));
-    const int UI_WIDTH = 180;
 
     // Add named OpenGL viewport to window and provide 3D Handler
     pangolin::View& d_cam =
         pangolin::CreateDisplay()
-            .SetBounds(0.0, 1.0, pangolin::Attach::Pix(UI_WIDTH), 1.0,
+            .SetBounds(0.0, 1.0, 0.0, 1.0,
                        -640.0f / 480.0f)
             .SetHandler(new RgoHandler3d(s_cam));
 
@@ -239,11 +230,6 @@ int main(int /*argc*/, char** /*argv*/) {
             static int counter = 0;
 
             ImGui::Begin("UI");
-            ImGui::SetWindowPos({0, 0});
-            auto win_size = ImGui::GetWindowSize();
-            win_size.x = pangolin::Attach::Pix(UI_WIDTH).p;
-            ImGui::SetWindowSize(win_size);
-
             ImGui::SliderFloat(
                 "float", &f, 0.0f,
                 1.0f);  // Edit 1 float using a slider from 0.0f to 1.0f
@@ -275,6 +261,6 @@ int main(int /*argc*/, char** /*argv*/) {
         std::this_thread::sleep_for(16ms);
     }
     ImGui_ImplOpenGL3_Shutdown();
-    ImGui::DestroyContext();
+
     return 0;
 }
